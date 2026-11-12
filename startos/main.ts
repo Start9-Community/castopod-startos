@@ -9,6 +9,7 @@ import {
   mediaPath,
   providerTitles,
 } from './mediaStorage'
+import { podcastIndexHealth, podcastIndexTrigger } from './podcastIndex'
 import { primaryUrl } from './primaryUrl'
 import { sdk } from './sdk'
 import {
@@ -82,7 +83,12 @@ fi
 export const main = sdk.setupMain(async ({ effects }) => {
   console.info(i18n('Starting Castopod!'))
 
-  const store = await storeJson.read().const(effects)
+  // Podcast Index settings and submissions are read by the actions and the
+  // health check directly; leaving them out here keeps a submission from
+  // restarting Castopod.
+  const store = await storeJson
+    .read((s) => ({ ...s, podcastIndex: undefined }))
+    .const(effects)
   if (!store?.databasePassword || !store.analyticsSalt) {
     throw new Error('Castopod internal secrets have not been initialized')
   }
@@ -306,5 +312,13 @@ export const main = sdk.setupMain(async ({ effects }) => {
           ),
       },
       requires: ['owner-account'],
+    })
+    .addHealthCheck('podcast-index', {
+      ready: {
+        display: i18n('Podcast Index'),
+        trigger: podcastIndexTrigger,
+        fn: podcastIndexHealth(effects, baseUrl),
+      },
+      requires: ['castopod'],
     })
 })

@@ -83,6 +83,8 @@ The package owns one file, `store.json` on the `main` volume. It writes no Casto
 - `smtp`, `enable2fa` — written by `configure-smtp` and `toggle-2fa`.
 - `mediaStorage` — where media lives: `{ "location": "internal" }` or `{ "location": "nextexplorer" | "filebrowser" | "nextcloud", "subfolder": "<path relative to that volume>" }`. Written by `media-storage` (recovery case only) and by the `media-move` one-shot when a copy succeeds. A value that does not parse falls back to internal.
 - `mediaMove` — a queued copy `{ from, to, error }`, or `null`. Written by `media-storage`; cleared by a successful copy, or set to the failure message, which stops the copy from being retried on every start until the action is run again.
+- `feedRevision` — a counter bumped by `set-lightning-address`. Main reads it, so bumping it restarts Castopod, which is how a feed change reaches listeners (see the action).
+- `podcastIndex` — `{ apiKey, apiSecret, submitted }`. The key and secret are written by `configure-podcast-index`; `submitted` maps each Castopod podcast guid to `{ handle, title, feedId }` and is written by `submit-podcast-index`; `notify` maps podcast handles to `true` while a Podcast Index re-read is owed after a restart (set by `set-lightning-address`, cleared by the health check). Main ignores this field when deciding whether to restart, so neither action restarts Castopod; the actions and the **Podcast Index** health check read it directly.
 
 Hand edits to `store.json` survive, but the account fields are only read when the owner account is first created; editing them does not change the account.
 
@@ -134,7 +136,7 @@ Upstream's `/cp-install` wizard is never reachable: the package creates the data
 
 ## Actions
 
-Seven user-facing actions. None are hidden.
+Ten user-facing actions. None are hidden.
 
 - **`set-admin-password`** — First run: only stores the password; the next start creates the owner account with it. Later runs (Castopod running): generate a new password, apply it with `spark shield:user password`, then store it. The old password stops working immediately. Takes a few seconds. Safe to repeat; each run replaces the password. Returns the sign-in email and password. Use it when the owner password is lost. Castopod's own "forgot password" email also works once SMTP is configured.
 - **`set-owner-email`** — Changes the owner account's email with `spark shield:user changeemail` and stores it. Castopod's UI has no way to change an account email. Run it before relying on password-reset emails or enabling 2FA. Requires Castopod running. Idempotent. Fails if the address is already used by another Castopod account.
@@ -143,6 +145,9 @@ Seven user-facing actions. None are hidden.
 - **`media-storage`** — Chooses where media lives: internal, or a folder in NextExplorer, FileBrowser Quantum or Nextcloud. Validates before saving: the folder's parent must exist (so the service must be installed), the folder must be new or empty, it cannot be inside or contain the current folder, and a Nextcloud folder must be under `data/<account>/files/`. Then queues a copy: a running Castopod restarts at once, and every start runs the copy before anything else. **Cost:** a full copy of all media (`cp`, file count and size logged before and after); Castopod and MariaDB are down until it finishes. The old copy is never deleted. Choosing the current location cancels a queued or failed move. **Recovery:** if the current external folder cannot be reached, choosing internal switches back without copying, to whatever internal copy was kept (missing anything uploaded since). An interrupted copy leaves a `.castopod-copy-incomplete` marker in the destination; the next start clears that folder and copies again.
 - **`delete-internal-media`** — Deletes the internal copy kept after media moved to another service (`main:media`). Run it once the other service is backed up, to shrink Castopod's backups. Irreversible; disabled while media is internal or a move is queued. Nothing else in the package deletes media; old copies in another service are left for the user to remove there.
 - **`toggle-2fa`** — Turns Castopod's email two-factor authentication on or off; Castopod restarts. Refuses to enable while SMTP is disabled or the owner email is the placeholder. Once on, **every** sign-in for **every** account waits for an emailed code. If mail stops being delivered, nobody can sign in; running this action again turns it off. It is not an authenticator-app (TOTP) feature.
+- **`configure-podcast-index`** — Stores a Podcast Index API key and secret (free account at api.podcastindex.org). New keys are read-only; Podcast Index grants write access on request, and only adding a feed needs it. Before saving, it makes one signed request: a rejected key (401/403 from the API) is refused, while an outage or a Cloudflare challenge page is saved anyway and reported in the result. Run it before **Submit to Podcast Index**, or when the key changes. Both fields empty removes the key; recorded submissions are kept. Costs one request to Podcast Index; does not restart Castopod. Safe to repeat: each run replaces the stored key.
+- **`submit-podcast-index`** — Disabled until a key is configured; requires Castopod running. The podcast list comes from MariaDB (`mariadb` client in a temporary subcontainer): podcasts whose `published_at` has passed and that have no `new_feed_url`. Refuses if the primary URL is `.onion`, `.local`, a private or link-local IP, or a bare hostname, since Podcast Index fetches feeds from the internet. Otherwise it looks the feed (`<primary URL>/@<handle>/feed.xml`) up with `GET /podcasts/byfeedurl`, which a read-only key may call, and only if it is not listed calls `POST /add/byfeedurl` (write permission needed). If that is refused, the error tells the user to add the feed at podcastindex.org/add, which needs no account, and run the action again to pick it up. It then calls `GET /hub/pubnotify` so the index re-reads it, and records the feed id in `store.json`. Takes a few seconds and does not restart Castopod. Safe to repeat: re-running for the same podcast returns the same feed id, and is the way to force a re-read and see the current status. The result shows the status, feed URL, the podcast's podcastindex.org page, and a submission link for each directory chosen from a fixed list (Apple Podcasts, Spotify, YouTube Music, Amazon Music, Deezer, Pocket Casts, Podcast Addict, Player FM, Castbox, Listen Notes, Podchaser, fyyd, Blubrry; the links are the ones Castopod's own `Platforms` module lists). Those directories have no submission API; the user submits by hand. The list also offers **Fountain**, which needs no submission (it takes shows from Podcast Index): its entry links to Fountain's claim-your-show page, with a note that Fountain verifies the claimant by emailing the feed's owner address, so Castopod's per-podcast "Remove the owner email from the public RSS feed" setting must be off while claiming.
+- **`set-lightning-address`** — Adds, replaces or (empty address) removes a podcast's Lightning value-for-value block. Requires Castopod running; lists every podcast not moved elsewhere, published or not. Resolves the address over HTTPS from the wallet's domain: `/.well-known/keysend/<name>` first, giving a `<podcast:value type="lightning" method="keysend">` block with a `type="node"` recipient (the wallet's node pubkey, plus its `customKey`/`customValue` if served), which every value-for-value app pays; if the wallet has no keysend endpoint but serves LNURL-pay (`/.well-known/lnurlp/<name>`), a `method="lnaddress"` block with a `type="lnaddress"` recipient, which fewer apps pay; otherwise it refuses. One recipient, `split="100"`, named after the address. Castopod has no Lightning field, so the block is written into the podcast's **Custom RSS tags** (`custom_rss` in `cp_podcasts`, Castopod's own JSON form), replacing only an existing `podcast:value` of type `lightning` and keeping every other custom tag; it stays editable in Castopod's podcast settings. **Cost:** Castopod caches feeds in its container for up to ten years and a temporary subcontainer cannot clear that, so the action bumps `feedRevision`, which restarts Castopod (about a minute down; everyone signed in is signed out). It also flags the podcast so the **Podcast Index** health check pings Podcast Index (`/hub/pubnotify?url=`, no key needed) once Castopod is back, if the primary URL is public. Safe to repeat; a keysend block must be refreshed with it if the wallet changes nodes. Removing when there is no block changes nothing and does not restart.
 
 ## Tasks
 
@@ -153,10 +158,12 @@ Two tasks.
 
 ## Health Checks
 
-Two checks, each with a 120-second grace period.
+Three checks. The first two have a 120-second grace period.
 
 - **Database** — MariaDB is listening on `127.0.0.1:3306`. A failure past the grace period means MariaDB did not start; its log in the service logs explains why (usually disk full, or a failed auto-upgrade after an image bump).
 - **Web Interface** — `GET http://127.0.0.1:8080/health` returns 200. Castopod's `/health` checks the database connection, the cache, and that the media folder is writable. A 503 after the grace period means one of those failed: check the log for a database or file-manager error. If the start sequence fails before Castopod launches (a one-shot exits non-zero), the log shows which one: `database-grants` (cannot authenticate to MariaDB as root), `media-permissions`, or `owner-account` (migration or seed error, printed from `spark`).
+
+- **Podcast Index** — runs once Castopod is ready. `disabled` until a key is configured and a podcast submitted. Otherwise it looks up every submitted feed with `GET /podcasts/byfeedid`, at most every 15 minutes while all are indexed and every 5 minutes otherwise (a new submission or key is picked up within 30 seconds). Per feed: not listed yet, never crawled, or no successful fetch and parse yet → `loading`; marked dead, last HTTP status 4xx/5xx, or listed under a feed URL other than the one the current primary URL produces → `failure`; otherwise `success` with the episode count, whether Podcast Index sees a Lightning value block (`value.model.type`), and the last crawl time. Before that, it sends any re-read pings owed after **Set Lightning Address** restarted Castopod, even with no key configured. The worst result wins. A rejected key is a `failure`; an outage or Cloudflare challenge keeps the previous result (or shows `loading` if there is none). It only reports Podcast Index's view; Apple, Spotify and other directories cannot be checked.
 
 Start-up can also stop before any check runs, with an error in the service log naming the cause: a queued media move that failed (`Moving media from … failed: …`; fix it and rerun **Media Storage**), or an external media folder that cannot be reached (the service uninstalled, or the folder renamed or deleted; restore it, or run **Media Storage** and choose internal to fall back).
 
@@ -183,6 +190,8 @@ Nothing is excluded except Castopod's in-container `writable/` (cache, sessions,
 9. Media written into Nextcloud's folders bypasses Nextcloud, so it does not appear in Nextcloud's web interface until Nextcloud rescans its files. Deleting or renaming files there from Nextcloud, NextExplorer or FileBrowser breaks the episodes that use them.
 10. Changing media storage copies everything and takes Castopod down for the duration. Old copies are kept, so the space is needed twice until they are removed.
 11. External media storage is storage only, not an import source. Castopod has no folder-scan or library feature; every media file needs a database record created by an upload through Castopod's UI or API. Files placed in the folder by hand are never picked up.
+12. Podcast Index submission works only on a public primary URL. Podcast Index's API is behind Cloudflare, which may answer some servers with a challenge page instead of the API; the actions and health check report this as a firewall block, not a key problem.
+13. Value-for-value payments go to one Lightning address per podcast at 100%. Splits between several recipients and per-episode recipients are not offered by the action; they can still be written by hand in Castopod's Custom RSS tags. Castopod's own "payment pointer" is Web Monetization, a separate system.
 
 ---
 
@@ -230,10 +239,17 @@ actions:
   - toggle-2fa
   - media-storage
   - delete-internal-media
+  - configure-podcast-index
+  - submit-podcast-index
+  - set-lightning-address
 tasks:
   - { action: set-admin-password, severity: critical }
   - { action: set-primary-url, severity: important }
 health_checks:
   - mariadb
   - castopod
+  - podcast-index
+external_services:
+  - api.podcastindex.org (only after configure-podcast-index; re-read pings after set-lightning-address)
+  - the Lightning wallet's domain, /.well-known/keysend and /.well-known/lnurlp (only during set-lightning-address)
 ```

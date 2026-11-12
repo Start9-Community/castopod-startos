@@ -1,4 +1,4 @@
-import { utils } from '@start9labs/start-sdk'
+import { T, utils } from '@start9labs/start-sdk'
 import { sdk } from './sdk'
 
 // FrankenPHP/Caddy listens here inside the image (CADDY_HTTP_PORT).
@@ -35,3 +35,53 @@ export const cliDatabaseEnv = (password: string) => ({
   database_default_password: password,
   database_default_DBPrefix: databasePrefix,
 })
+
+/**
+ * Runs SQL against Castopod's database from a temporary MariaDB-client
+ * subcontainer (the service shares localhost) and returns stdout. Values
+ * come back unescaped (`--raw`), one row per line, no column names.
+ */
+export async function runSql(
+  effects: T.Effects,
+  databasePassword: string,
+  sql: string,
+): Promise<string> {
+  return sdk.SubContainer.withTemp(
+    effects,
+    { imageId: 'mariadb' },
+    sdk.Mounts.of(),
+    'castopod-sql',
+    async (sub) => {
+      const res = await sub.exec(
+        [
+          'mariadb',
+          '--protocol=tcp',
+          '-h',
+          '127.0.0.1',
+          '-P',
+          String(databasePort),
+          '-u',
+          databaseUser,
+          '-D',
+          databaseName,
+          '--batch',
+          '--raw',
+          '--skip-column-names',
+          '-e',
+          sql,
+        ],
+        { env: { MYSQL_PWD: databasePassword } },
+      )
+      if (res.exitCode !== 0) {
+        // The client warns about MYSQL_PWD on stderr; keep only errors.
+        const err = String(res.stderr)
+          .split('\n')
+          .filter((l) => !l.startsWith('WARNING'))
+          .join(' ')
+          .trim()
+        throw new Error(err)
+      }
+      return String(res.stdout)
+    },
+  )
+}
