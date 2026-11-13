@@ -133,6 +133,10 @@ const dict = {
   "The podcast's custom RSS tags could not be read.": 129,
   'indexed with ${count} episodes and Lightning payments, last checked ${time}': 130,
   'New Podcast Index API keys are read-only and cannot add podcasts. Add it yourself at https://podcastindex.org/add with the feed URL ${url} (no account needed), wait a few minutes, then run this action again: it finds the listing and tracks it. Or ask Podcast Index to give your key write access.': 131,
+  'Owner Account': 132,
+  Settings: 133,
+  Media: 134,
+  'Podcasting 2.0': 135,
 } as const
 
 /**

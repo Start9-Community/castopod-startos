@@ -66,7 +66,7 @@ export const setLightningAddress = sdk.Action.withInput(
       'Castopod restarts to publish the change: it is unreachable for about a minute, and everyone signed in to Castopod is signed out.',
     ),
     allowedStatuses: 'only-running',
-    group: null,
+    group: i18n('Podcasting 2.0'),
     visibility: 'enabled',
   }),
 

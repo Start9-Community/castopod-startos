@@ -134,6 +134,10 @@ export default {
     129: 'No se pudieron leer las etiquetas RSS personalizadas del pódcast.',
     130: 'indexado con ${count} episodios y pagos Lightning, última revisión ${time}',
     131: 'Las claves de API nuevas de Podcast Index son de solo lectura y no pueden añadir pódcasts. Añádelo tú en https://podcastindex.org/add con la URL del feed ${url} (no hace falta cuenta), espera unos minutos y vuelve a ejecutar esta acción: encontrará el listado y lo seguirá. O pide a Podcast Index acceso de escritura para tu clave.',
+    132: 'Cuenta del propietario',
+    133: 'Ajustes',
+    134: 'Medios',
+    135: 'Podcasting 2.0',
   },
   de_DE: {
     0: 'Starte Castopod!',
@@ -268,6 +272,10 @@ export default {
     129: 'Die benutzerdefinierten RSS-Tags des Podcasts konnten nicht gelesen werden.',
     130: 'indexiert mit ${count} Episoden und Lightning-Zahlungen, zuletzt geprüft ${time}',
     131: 'Neue API-Schlüssel von Podcast Index sind schreibgeschützt und können keine Podcasts hinzufügen. Füge ihn selbst auf https://podcastindex.org/add mit der Feed-URL ${url} hinzu (kein Konto nötig), warte ein paar Minuten und führe diese Aktion dann erneut aus: Sie findet den Eintrag und verfolgt ihn. Oder bitte Podcast Index um Schreibzugriff für deinen Schlüssel.',
+    132: 'Inhaberkonto',
+    133: 'Einstellungen',
+    134: 'Medien',
+    135: 'Podcasting 2.0',
   },
   pl_PL: {
     0: 'Uruchamianie Castopod!',
@@ -402,6 +410,10 @@ export default {
     129: 'Nie można odczytać niestandardowych tagów RSS podcastu.',
     130: 'zaindeksowany, odcinków: ${count}, z płatnościami Lightning, ostatnio sprawdzony ${time}',
     131: 'Nowe klucze API Podcast Index są tylko do odczytu i nie mogą dodawać podcastów. Dodaj go samodzielnie na https://podcastindex.org/add, podając URL kanału ${url} (konto nie jest potrzebne), odczekaj kilka minut i uruchom tę akcję ponownie: znajdzie wpis i będzie go śledzić. Możesz też poprosić Podcast Index o prawo zapisu dla swojego klucza.',
+    132: 'Konto właściciela',
+    133: 'Ustawienia',
+    134: 'Media',
+    135: 'Podcasting 2.0',
   },
   fr_FR: {
     0: 'Démarrage de Castopod !',
@@ -536,5 +548,9 @@ export default {
     129: "Les balises RSS personnalisées du podcast n'ont pas pu être lues.",
     130: 'indexé avec ${count} épisodes et les paiements Lightning, dernière vérification ${time}',
     131: "Les nouvelles clés d'API Podcast Index sont en lecture seule et ne peuvent pas ajouter de podcasts. Ajoutez-le vous-même sur https://podcastindex.org/add avec l'URL du flux ${url} (aucun compte nécessaire), attendez quelques minutes, puis relancez cette action : elle trouvera la fiche et la suivra. Ou demandez à Podcast Index l'accès en écriture pour votre clé.",
+    132: 'Compte propriétaire',
+    133: 'Paramètres',
+    134: 'Médias',
+    135: 'Podcasting 2.0',
   },
 } satisfies Record<string, LangDict>

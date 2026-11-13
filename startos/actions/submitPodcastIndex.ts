@@ -85,7 +85,7 @@ export const submitPodcastIndex = sdk.Action.withInput(
       ),
       warning: null,
       allowedStatuses: 'only-running',
-      group: null,
+      group: i18n('Podcasting 2.0'),
       visibility:
         pi?.apiKey && pi.apiSecret
           ? 'enabled'

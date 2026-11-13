@@ -5,7 +5,7 @@ export const manifest = setupManifest({
   id: 'castopod',
   title: 'Castopod',
   license: 'AGPL-3.0',
-  packageRepo: 'https://github.com/The-Cryptosquid/castopod-startos',
+  packageRepo: 'https://github.com/Start9-Community/castopod-startos',
   upstreamRepo: 'https://code.castopod.org/adaures/castopod',
   marketingUrl: 'https://castopod.org/',
   donationUrl: 'https://opencollective.com/castopod',

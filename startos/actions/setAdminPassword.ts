@@ -39,7 +39,7 @@ export const setAdminPassword = sdk.Action.withoutInput(
         ? null
         : i18n('Replaces the current owner account password.'),
       allowedStatuses: first ? 'any' : 'only-running',
-      group: null,
+      group: i18n('Owner Account'),
       visibility: 'enabled',
     }
   },

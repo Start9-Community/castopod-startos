@@ -27,7 +27,7 @@ export const toggle2fa = sdk.Action.withoutInput(
             'If email delivery fails, nobody can sign in to Castopod until this is turned off again. Send yourself a password-reset email first to confirm mail works.',
           ),
       allowedStatuses: 'any',
-      group: null,
+      group: i18n('Owner Account'),
       visibility: 'enabled',
     }
   },
