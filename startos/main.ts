@@ -59,6 +59,14 @@ if [ "$(id -u)" = 0 ]; then
 fi
 `
 
+// Replaces the image's bootstrap `up`, whose closing `cat .env` logs the database password and salt.
+const bootstrapDir = '/etc/s6-overlay/s6-rc.d/bootstrap'
+const bootstrapScript = `#!/command/with-contenv sh
+{ ${bootstrapDir}/prepare-environment.sh; echo $? > /tmp/bootstrap-status; } 2>&1 \\
+  | sed -u -E 's/^([A-Za-z0-9_.]*([Pp]ass(word)?|salt|secret)=).*/\\1<redacted>/'
+exit "$(cat /tmp/bootstrap-status)"
+`
+
 // Creates the schema and seed data, then the owner account, before Castopod
 // serves its first request, so the /cp-install wizard (which hands the
 // instance to whoever opens it first) is never reachable. Both steps are
@@ -190,6 +198,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
   // Passed straight to CodeIgniter rather than through upstream's CP_EMAIL_*
   // variables, which its bootstrap writes into .env unquoted, and which it
   // refuses to start without a username and password.
+  const fromName = smtp?.from.match(/^\s*"?([^"<]*?)"?\s*<[^>]+>\s*$/)?.[1]
   const emailEnv: Record<string, string> = smtp
     ? {
         email_protocol: 'smtp',
@@ -198,6 +207,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
         // CodeIgniter: 'ssl' is implicit TLS, 'tls' is STARTTLS.
         email_SMTPCrypto: smtp.security === 'tls' ? 'ssl' : 'tls',
         email_fromEmail: smtp.from,
+        ...(fromName ? { email_fromName: fromName } : {}),
         ...(smtp.username ? { email_SMTPUser: smtp.username } : {}),
         ...(smtp.password ? { email_SMTPPass: smtp.password } : {}),
       }
@@ -220,6 +230,13 @@ export const main = sdk.setupMain(async ({ effects }) => {
     { imageId: 'castopod' },
     mediaMounts(storage),
     'castopod-sub',
+  )
+  await castopod.writeFile(`${bootstrapDir}/redacted-up.sh`, bootstrapScript, {
+    mode: 0o755,
+  })
+  await castopod.writeFile(
+    `${bootstrapDir}/up`,
+    `${bootstrapDir}/redacted-up.sh\n`,
   )
 
   return sdk.Daemons.of(effects)

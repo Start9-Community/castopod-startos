@@ -40,7 +40,7 @@ Two upstream images run unmodified, each in its own subcontainer, both for x86_6
 | `mariadb-sub`  | `mariadb`           | `mariadbd --bind-address=127.0.0.1` via the official entrypoint, with `MARIADB_AUTO_UPGRADE=1`. Also hosts the `database-grants` one-shot.                                                                 |
 | `media-move-sub` | `castopod/castopod` | Only while a media move is queued: hosts the `media-move` one-shot, which runs the copy in a temporary `media-copy` subcontainer. Nothing else starts. |
 
-On every start, in order: MariaDB starts; `database-grants` ensures the `castopod` database account exists for TCP connections from `127.0.0.1`; `media-permissions` (as root) creates the media folders and hands them to `www-data`; `owner-account` (as `www-data`) runs `spark install:init-database` (migrations + idempotent seeds) and creates the owner account if none exists; then Castopod starts. The image's own bootstrap rewrites `/app/.env` from `CP_*` variables and runs any pending migrations again.
+On every start, in order: MariaDB starts; `database-grants` ensures the `castopod` database account exists for TCP connections from `127.0.0.1`; `media-permissions` (as root) creates the media folders and hands them to `www-data`; `owner-account` (as `www-data`) runs `spark install:init-database` (migrations + idempotent seeds) and creates the owner account if none exists; then Castopod starts. The image's own bootstrap rewrites `/app/.env` from `CP_*` variables and runs any pending migrations again. The package replaces that s6 service's `up` file in the subcontainer so the bootstrap's printout of `.env` reaches the log with the database password and analytics salt shown as `<redacted>`.
 
 Actions that touch accounts (`set-admin-password` rotation, `set-owner-email`) run Castopod's `spark` CLI in a temporary subcontainer of the Castopod image, against the running MariaDB.
 
@@ -94,7 +94,7 @@ Environment variables re-asserted on every start (the image's bootstrap writes m
 - `CP_DISABLE_HTTPS=1` — always. StartOS terminates TLS, and also serves Castopod on plain-HTTP `.onion` addresses; Castopod's own HTTPS redirect would loop.
 - `CP_ANALYTICS_SALT`, `CP_DATABASE_*` — from `store.json`.
 - `CP_ENABLE_2FA=true` — only while `enable2fa` is on.
-- `email_protocol`, `email_SMTPHost`, `email_SMTPPort`, `email_SMTPCrypto`, `email_fromEmail`, `email_SMTPUser`, `email_SMTPPass` — CodeIgniter's own variables, read directly from the environment. The package does not use upstream's `CP_EMAIL_*` variables, because the bootstrap writes those into `.env` unquoted (breaking passwords with spaces or `#`) and refuses to start without a username and password.
+- `email_protocol`, `email_SMTPHost`, `email_SMTPPort`, `email_SMTPCrypto`, `email_fromEmail`, `email_fromName` (only when the From address carries a display name), `email_SMTPUser`, `email_SMTPPass` — CodeIgniter's own variables, read directly from the environment. The package does not use upstream's `CP_EMAIL_*` variables, because the bootstrap writes those into `.env` unquoted (breaking passwords with spaces or `#`) and refuses to start without a username and password.
 
 The admin and auth gateways stay at upstream's defaults: `/cp-admin` and `/cp-auth`.
 
@@ -136,7 +136,7 @@ Upstream's `/cp-install` wizard is never reachable: the package creates the data
 
 ## Actions
 
-Ten user-facing actions. None are hidden.
+Ten user-facing actions. None are hidden. StartOS shows them in four groups: **Owner Account** (`set-admin-password`, `set-owner-email`, `toggle-2fa`), **Settings** (`set-primary-url`, `configure-smtp`), **Media** (`media-storage`, `delete-internal-media`) and **Podcasting 2.0** (`configure-podcast-index`, `submit-podcast-index`, `set-lightning-address`).
 
 - **`set-admin-password`** — First run: only stores the password; the next start creates the owner account with it. Later runs (Castopod running): generate a new password, apply it with `spark shield:user password`, then store it. The old password stops working immediately. Takes a few seconds. Safe to repeat; each run replaces the password. Returns the sign-in email and password. Use it when the owner password is lost. Castopod's own "forgot password" email also works once SMTP is configured.
 - **`set-owner-email`** — Changes the owner account's email with `spark shield:user changeemail` and stores it. Castopod's UI has no way to change an account email. Run it before relying on password-reset emails or enabling 2FA. Requires Castopod running. Idempotent. Fails if the address is already used by another Castopod account.
@@ -222,6 +222,7 @@ startos_managed_env_vars:
   - email_SMTPPort
   - email_SMTPCrypto
   - email_fromEmail
+  - email_fromName
   - email_SMTPUser
   - email_SMTPPass
 dependencies:

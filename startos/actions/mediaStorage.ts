@@ -116,7 +116,7 @@ export const mediaStorage = sdk.Action.withInput(
       'Back up first. The new location needs room for a full copy of your media, and Castopod is unavailable while it copies. The old copy is kept. Media kept in another service is backed up by that service, not by Castopod.',
     ),
     allowedStatuses: 'any',
-    group: null,
+    group: i18n('Media'),
     visibility: 'enabled',
   }),
 

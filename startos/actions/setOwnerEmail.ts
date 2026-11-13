@@ -36,7 +36,7 @@ export const setOwnerEmail = sdk.Action.withInput(
     ),
     warning: null,
     allowedStatuses: 'only-running',
-    group: null,
+    group: i18n('Owner Account'),
     visibility: 'enabled',
   }),
 

@@ -16,7 +16,7 @@ export const primaryUrl = sdk.setupPrimaryUrl({
       'Podcast apps and directories keep the feed and media URLs they were given. Changing this after publishing a podcast breaks those links.',
     ),
     allowedStatuses: 'any',
-    group: null,
+    group: i18n('Settings'),
     visibility: 'enabled',
   },
   field: { name: i18n('URL'), description: null },

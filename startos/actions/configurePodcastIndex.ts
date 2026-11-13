@@ -31,7 +31,7 @@ export const configurePodcastIndex = sdk.Action.withInput(
     ),
     warning: null,
     allowedStatuses: 'any',
-    group: null,
+    group: i18n('Podcasting 2.0'),
     visibility: 'enabled',
   }),
 

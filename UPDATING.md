@@ -27,5 +27,5 @@ Stay on 11.8 unless Castopod's own compose example or requirements move past it.
 
 ## Applying the bump
 
-- Castopod: set `dockerTag` to `castopod/castopod:X.Y.Z` (no `v` prefix). Read upstream's `CHANGELOG.md` for the release: if `docker/production/s6-rc.d/bootstrap/prepare-environment.sh` changed, check that the `CP_*` variables passed in `startos/main.ts` still mean the same thing, and that the `install:create-superadmin`, `install:init-database`, `shield:user password` and `shield:user changeemail` prompts the scripts pipe into are unchanged.
+- Castopod: set `dockerTag` to `castopod/castopod:X.Y.Z` (no `v` prefix). Read upstream's `CHANGELOG.md` for the release: if `docker/production/s6-rc.d/bootstrap/prepare-environment.sh` changed, check that the `CP_*` variables passed in `startos/main.ts` still mean the same thing, that the bootstrap's `up` still only runs that script (the package replaces it to redact the `.env` printout), and that no new secret it prints escapes the redaction pattern, and that the `install:create-superadmin`, `install:init-database`, `shield:user password` and `shield:user changeemail` prompts the scripts pipe into are unchanged.
 - MariaDB: set `dockerTag` to `mariadb:11.8.N`.

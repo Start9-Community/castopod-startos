@@ -27,3 +27,6 @@ bare clone with no workspace, the full guide is at <https://docs.start9.com/pack
 - Mount at real paths only. The image's `/app` is a symlink to `/var/www/html`; StartOS creates
   mountpoints without following symlinks, so a mount under `/app/...` fails with `ENOTDIR` (Docker
   follows it, so local tests won't catch this).
+- `main.ts` overwrites the image's `bootstrap/up` so the bootstrap's closing `cat .env` prints
+  secrets as `<redacted>`. Don't drop it, and pass any new secret through a key the redaction
+  pattern matches: support asks users for their logs.

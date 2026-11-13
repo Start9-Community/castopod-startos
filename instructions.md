@@ -32,11 +32,11 @@ Both live at the same address (the admin area is its `/cp-admin` page), so makin
 
 - **Set Admin Password** — generates a new password for the owner account and applies it immediately. Use it if you lose the password.
 - **Set Owner Email** — changes the email you sign in with. Castopod's own settings pages cannot change it.
+- **Enable / Disable Email Two-Factor Authentication** — requires a code sent by email on every sign-in, for every account. It needs SMTP and a real owner email. If email delivery breaks, nobody can sign in until you run the action again to turn it off. Test that mail arrives (for example with a password-reset email) before turning it on.
 - **Set Primary URL** — changes the address Castopod publishes under. Changing it after you have published breaks existing feed subscriptions and fediverse follows.
 - **Configure SMTP** — lets Castopod send email.
 - **Media Storage** — chooses where Castopod keeps its media. See below.
 - **Delete Internal Media Copy** — after moving media to another service, deletes the copy left in Castopod's own storage.
-- **Enable / Disable Email Two-Factor Authentication** — requires a code sent by email on every sign-in, for every account. It needs SMTP and a real owner email. If email delivery breaks, nobody can sign in until you run the action again to turn it off. Test that mail arrives (for example with a password-reset email) before turning it on.
 - **Configure Podcast Index** — saves your Podcast Index API key. See below.
 - **Submit to Podcast Index** — lists a published podcast in Podcast Index and gives you links for other directories. See below.
 - **Set Lightning Address** — lets listeners send your podcast Lightning payments. See below.

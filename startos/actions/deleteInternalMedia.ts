@@ -21,7 +21,7 @@ export const deleteInternalMedia = sdk.Action.withoutInput(
         'The internal copy is your fallback if the other service or its folder is lost. Make sure that service is backed up first. This cannot be undone.',
       ),
       allowedStatuses: 'any',
-      group: null,
+      group: i18n('Media'),
       visibility: !external
         ? {
             disabled: i18n(
