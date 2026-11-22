@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="icon.svg" alt="Castopod Logo" width="21%">
+  <img src=".github/social-preview.png" alt="Castopod on StartOS" width="100%">
 </p>
 
 # Castopod on StartOS
